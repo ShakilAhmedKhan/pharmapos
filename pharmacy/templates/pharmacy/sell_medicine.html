@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<h2>Sell Medicine</h2>
+<form method="post">{% csrf_token %}
+    {{ sale_form.as_p }}
+    {{ formset.management_form }}
+    {% for form in formset %}{{ form.as_p }}{% endfor %}
+    <button type="submit">Sell</button>
+</form>
+</body>
+</html>
