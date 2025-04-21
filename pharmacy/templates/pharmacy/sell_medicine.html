@@ -2,15 +2,182 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Sell Medicine</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .medicine-list {
+            margin-top: 20px;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .medicine-list th, .medicine-list td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        .medicine-list th {
+            background-color: #f2f2f2;
+        }
+    </style>
+    <script>
+        let medicineData = {};
+
+        function onMedicineChange() {
+            const selectedId = document.getElementById('medicine').value;
+            const price = medicineData[selectedId]?.price || 0;
+            document.getElementById('price').value = price;
+        }
+
+        function addMedicineToList() {
+            const medicineSelect = document.getElementById('medicine');
+            const selectedId = medicineSelect.value;
+            const medicineName = medicineSelect.options[medicineSelect.selectedIndex].text;
+            const quantity = document.getElementById('quantity').value;
+            const price = document.getElementById('price').value;
+
+            if (!selectedId || !quantity) {
+                alert('Please select a medicine and quantity');
+                return;
+            }
+
+            const table = document.getElementById('medicine-table-body');
+            const row = document.createElement('tr');
+
+            row.innerHTML = `
+                <td><input type="hidden" name="form-${table.rows.length}-medicine" value="${selectedId}">${medicineName}</td>
+                <td><input type="hidden" name="form-${table.rows.length}-quantity" value="${quantity}">${quantity}</td>
+                <td>${price}</td>
+            `;
+
+            table.appendChild(row);
+
+            document.getElementById('id_form-TOTAL_FORMS').value = table.rows.length;
+
+            // Reset inputs
+            document.getElementById('quantity').value = '';
+            document.getElementById('price').value = '';
+        }
+    </script>
 </head>
 <body>
 <h2>Sell Medicine</h2>
-<form method="post">{% csrf_token %}
+<form method="post">
+    {% csrf_token %}
     {{ sale_form.as_p }}
+
+    <!-- Hidden formset management -->
     {{ formset.management_form }}
-    {% for form in formset %}{{ form.as_p }}{% endfor %}
-    <button type="submit">Sell</button>
+
+    <!-- Dynamic medicine input area -->
+    <label for="medicine">Medicine:</label>
+    <select id="medicine" onchange="onMedicineChange()">
+        <option value="">-- Select --</option>
+        {% for med in formset.forms.0.fields.medicine.queryset %}
+            <option value="{{ med.id }}">{{ med.name }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="quantity">Quantity:</label>
+    <input type="number" id="quantity" min="1">
+
+    <label for="price">Price:</label>
+    <input type="text" id="price" readonly>
+
+    <button type="button" onclick="addMedicineToList()">Add to List</button>
+
+    <!-- Table to show list -->
+    <table class="medicine-list">
+    <thead>
+    <tr>
+        <th>Medicine</th>
+        <th>Quantity</th>
+        <th>Price (৳)</th>
+        <th>Subtotal (৳)</th>
+    </tr>
+    </thead>
+    <tbody id="medicine-table-body"></tbody>
+    <tfoot>
+    <tr>
+        <td colspan="3" style="text-align: right;"><strong>Total:</strong></td>
+        <td><strong><span id="total-price">0.00</span> ৳</strong></td>
+    </tr>
+    </tfoot>
+</table></table>
+
+    <input type="submit" value="Sell">
 </form>
+
+<script>
+    // ✅ Store medicine price from Django into a JS object
+    medicineData = {
+        {% for med in formset.forms.0.fields.medicine.queryset %}
+            "{{ med.id }}": { "price": {{ med.price|floatformat:"2" }} },
+        {% endfor %}
+    };
+
+    function onMedicineChange() {
+        const selectedId = document.getElementById('medicine').value;
+        const price = medicineData[selectedId]?.price || 0;
+        document.getElementById('price').value = price;
+    }
+
+    function updateTotal() {
+        const table = document.getElementById('medicine-table-body');
+        let total = 0;
+
+        for (const row of table.rows) {
+            const subtotal = parseFloat(row.dataset.subtotal);
+            total += isNaN(subtotal) ? 0 : subtotal;
+        }
+
+        document.getElementById('total-price').innerText = total.toFixed(2);
+    }
+
+    function addMedicineToList() {
+        const medicineSelect = document.getElementById('medicine');
+        const selectedId = medicineSelect.value;
+        const medicineName = medicineSelect.options[medicineSelect.selectedIndex].text;
+        const quantity = parseInt(document.getElementById('quantity').value);
+        const price = parseFloat(document.getElementById('price').value);
+
+        if (!selectedId || !quantity || isNaN(price)) {
+            alert('Please select a medicine and quantity');
+            return;
+        }
+
+        const subtotal = quantity * price;
+
+        const table = document.getElementById('medicine-table-body');
+        const row = document.createElement('tr');
+        row.dataset.subtotal = subtotal;
+
+        row.innerHTML = `
+            <td>
+                <input type="hidden" name="form-${table.rows.length}-medicine" value="${selectedId}">
+                ${medicineName}
+            </td>
+            <td>
+                <input type="hidden" name="form-${table.rows.length}-quantity" value="${quantity}">
+                ${quantity}
+            </td>
+            <td>
+                ${price.toFixed(2)}
+            </td>
+            <td>
+                ${subtotal.toFixed(2)}
+            </td>
+        `;
+
+        table.appendChild(row);
+        document.getElementById('id_form-TOTAL_FORMS').value = table.rows.length;
+
+        updateTotal();
+
+        // Reset inputs
+        document.getElementById('quantity').value = '';
+        document.getElementById('price').value = '';
+    }
+</script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Invoices</title>
 </head>
 <body>
 
@@ -14,12 +14,9 @@
 <ul>
     {% for invoice in object_list %}
         <li>
-            <strong>{{ invoice.customer.name }}</strong> - {{ invoice.sale_date }}
-            <ul>
-                {% for item in invoice.items.all %}
-                    <li>{{ item.medicine.name }} x {{ item.quantity }}</li>
-                {% endfor %}
-            </ul>
+            <a href="{% url 'invoice_detail' invoice.id %}">
+                Invoice #{{ invoice.id }} - {{ invoice.customer.name }} - {{ invoice.sale_date }} - Total: {{ invoice.total_price }}৳
+            </a>
         </li>
     {% endfor %}
 </ul>
